@@ -1,0 +1,11 @@
+1 git checkout master
+1 git merge feature/a
+2 git merge feature/b
+3 git checkout --ours example.txt (prend la version de master)
+3 git merge feature/b
+4 git reset --hard HEAD~1
+4 git checkout --theirs example.txt (prend la version de feature/b)
+4 git merge feature/b
+5 git reset --hard HEAD~1
+5 vi example.txt (ca aide quand les fichiers ont besoins de lignes depuis les 2 branches)
+6 oui
