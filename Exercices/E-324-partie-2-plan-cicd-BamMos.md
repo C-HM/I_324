@@ -3,6 +3,7 @@
 ## 0. Contexte du projet
 
 Le projet **MOSBAM P Cloud** est une application web simple composée :
+
 - d’un **backend Node.js / Express** qui expose une API REST ;
 - d’un **frontend Vue 3 / Vite** qui consomme cette API ;
 - d’une base de données **MySQL** pour stocker les données ;
@@ -87,19 +88,19 @@ L’objectif du plan CI/CD est de définir **comment on passe du code sur GitHub
 
 ### 2.3 Environnements de déploiement
 
-| Environnement | Usage principal                              | Déploiement        |
-|---------------|----------------------------------------------|--------------------|
-| Dev local     | Développement individuel                     | Manuel (Docker)    |
-| Intégration   | Tester les branches `develop`                | Automatique (CI)   |
-| Staging       | Vérifier une release avant la prod           | Semi-auto (approb.)|
-| Prod          | Version utilisée par les “vrais” utilisateurs| Semi/auto (tag)    |
+| Environnement | Usage principal                               | Déploiement         |
+| ------------- | --------------------------------------------- | ------------------- |
+| Dev local     | Développement individuel                      | Manuel (Docker)     |
+| Intégration   | Tester les branches `develop`                 | Automatique (CI)    |
+| Staging       | Vérifier une release avant la prod            | Semi-auto (approb.) |
+| Prod          | Version utilisée par les “vrais” utilisateurs | Semi/auto (tag)     |
 
 ### 2.4 Variables d’environnement
 
 Exemples de variables nécessaires :
+
 - `DB_HOST`, `DB_PORT`, `DB_USER`, `DB_PASSWORD`, `DB_NAME` : connexion MySQL ;
 - `PORT_API`, `PORT_FRONT` : ports d’écoute ;
-- éventuellement `SENDGRID_API_KEY` ou autre clé si on envoie des mails ;
 - `NODE_ENV` : `development` / `production` pour activer certains comportements.
 
 ### 2.5 Secrets à protéger
@@ -109,6 +110,7 @@ Exemples de variables nécessaires :
 - Eventuels tokens (webhooks, bots, etc.).
 
 Ces secrets sont stockés dans :
+
 - **GitHub Actions Secrets / Environments** pour la CI/CD ;
 - éventuellement un **key vault** côté cloud pour l’exécution en production.
 
@@ -120,6 +122,7 @@ Ces secrets sont stockés dans :
 
 Le pipeline sera géré par **GitHub Actions**.  
 Déclencheurs principaux :
+
 - push sur une branche `feature/*` → CI basique (tests) ;
 - push / PR vers `develop` → CI complète + déploiement sur environnement d’intégration ;
 - création d’un **tag** `vX.Y.Z` sur `main` → pipeline de release + déploiement en production.
@@ -127,39 +130,48 @@ Déclencheurs principaux :
 ### 3.2 Étapes du pipeline (exemple)
 
 1. **Checkout du code**
+
    - Outil : `actions/checkout`.
    - Feedback : logs de l’action, échec immédiat si le repo n’est pas accessible.
 
 2. **Installation des dépendances**
+
    - Outil : `npm install` dans le dossier backend, puis dans le dossier frontend.
    - Feedback : temps d’installation, erreurs de dépendances.
 
 3. **Vérification du code (lint/format)**
+
    - Outil : `npm run lint` (ESLint) et éventuellement `npm run format` (Prettier).
    - Feedback : liste des erreurs de style ou de syntaxe, échec si des problèmes bloquants sont trouvés.
 
 4. **Tests unitaires backend et frontend**
+
    - Outil : `npm test` ou équivalent (Jest, Vitest, …).
    - Feedback : rapport de tests (succès / échecs), nombre de tests passés.
 
 5. **Audit des dépendances (simple)**
+
    - Outil : `npm audit --production` (ou équivalent) sur backend et frontend.
    - Feedback : rapport des vulnérabilités connues, possibilité de marquer l’étape en “warning” plutôt que “échec” si on veut rester raisonnable.
 
 6. **Build du frontend**
+
    - Outil : `npm run build` dans le dossier frontend.
    - Feedback : succès/échec du build, taille du bundle.
 
 7. **Build des images Docker**
+
    - Outil : `docker build` pour `frontend` et `backend` ;
    - Tags : `frontend:commit-sha`, `backend:commit-sha` + éventuellement `frontend:vX.Y.Z` pour les releases.
    - Feedback : logs de build, taille des images.
 
 8. **Push des images sur le registry**
+
    - Outil : `docker push` vers GitHub Container Registry ou Azure Container Registry.
    - Feedback : confirmation que les images sont bien publiées.
 
 9. **Déploiement sur les environnements**
+
    - Intégration : déploiement automatique après succès de la CI sur `develop` ;
    - Staging/Prod : déploiement déclenché par un **tag** + éventuellement une **validation manuelle** dans GitHub Actions.
    - Outil : script de déploiement (Docker / Azure CLI / Github Actions) qui met à jour les images utilisées par les services.
@@ -170,35 +182,27 @@ Déclencheurs principaux :
 
 ### 3.3 Schéma du pipeline
 
-Un schéma simple pourra être réalisé avec **draw.io** par exemple :
-
-```text
-Dev → Push sur GitHub → CI (tests, build, Docker) →
-   → Environnement d’intégration (develop)
-   → Tag vX.Y.Z → Staging → Validation → Production
-```
-
-Ce schéma pourra être sauvegardé dans le repo, par exemple dans :  
-`docs/diagrams/pipeline-cicd.drawio`.
-
----
+![alt text](Schema.png)
 
 ## 4. Suivi et amélioration continue
 
 ### 4.1 Monitoring
 
 Après la mise en production, on souhaite au minimum :
+
 - des **logs applicatifs** (backend) lisibles et centralisés ;
 - quelques **indicateurs** : nombre d’erreurs 500, temps de réponse moyen, disponibilité ;
 - une **page de santé** (endpoint `/health`) pour savoir si l’API répond correctement.
 
 Si on utilise Azure :
+
 - **Azure Monitor / Application Insights** peuvent être utilisés pour suivre les requêtes et les erreurs ;
 - on peut configurer des **alertes** (par e-mail) si le service ne répond plus ou si le nombre d’erreurs est trop élevé.
 
 ### 4.2 Impact sur le projet
 
 Ce monitoring sert à :
+
 - détecter rapidement les bugs en production ;
 - voir si certaines fonctionnalités posent problème (temps de réponse trop long, erreurs fréquentes) ;
 - décider quoi corriger/améliorer en priorité dans les prochains sprints ;
@@ -211,33 +215,3 @@ Ce monitoring sert à :
   - Qu’est-ce qui a posé problème (tests, temps de build, déploiement) ?
   - Quelles règles ou étapes peut-on simplifier ou améliorer ?
 - Les conclusions peuvent être notées dans un petit document (ex. `docs/retrospectives.md`).
-
----
-
-## 5. Procédure de déploiement (résumé)
-
-1. Le développeur travaille sur une branche `feature/...` en local (Docker en dev).
-2. Il ouvre une **pull request** vers `develop` :
-   - CI lancée automatiquement (lint, tests, build) ;
-   - si tout est vert et la PR validée, la branche est fusionnée.
-3. Un push sur `develop` déclenche :
-   - la CI complète ;
-   - le déploiement automatique sur l’environnement d’intégration.
-4. Quand une version est prête pour la production :
-   - on crée un **tag** `vX.Y.Z` sur `main` ;
-   - cela lance un pipeline de **release** qui :
-     - reconstruit les images Docker ;
-     - les pousse sur le registry ;
-     - met à jour l’environnement de production ;
-     - envoie une notification de fin de déploiement.
-5. En cas de problème en production :
-   - on re-déploie la version précédente (image Docker précédente) ;
-   - si nécessaire, on restaure la sauvegarde MySQL réalisée avant le déploiement.
-
----
-
-Ce plan CI/CD reste **réaliste pour un projet d’apprentis à l’ETML**, tout en respectant les grandes idées des pratiques DevOps :
-- automatiser ce qui est répétitif ;
-- garder une trace claire de ce qui est déployé ;
-- pouvoir revenir en arrière ;
-- surveiller l’application pour continuer à l’améliorer.
